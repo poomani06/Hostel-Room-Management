@@ -1,106 +1,116 @@
-﻿
-using HostelRoomManagement.Data;
+﻿using HostelRoomManagement.Data;
 using HostelRoomManagement.Menus;
 using HostelRoomManagement.Repositories;
 using HostelRoomManagement.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace HostelRoomManagement;
-
-internal class Program
+namespace HostelRoomManagement
 {
-    static async Task Main(string[] args)
+    internal class Program
     {
-        var services = new ServiceCollection();
-
-        services.AddDbContext<HostelDbContext>(options =>
-            options.UseSqlServer(DatabaseConfiguration.ConnectionString));
-
-        // Register repositories
-        services.AddScoped<RoomRepository>();
-        services.AddScoped<ResidentRepository>();
-        services.AddScoped<RoomAllocationRepository>();
-
-        // Register services
-        services.AddScoped<RoomService>();
-        services.AddScoped<ResidentService>();
-        services.AddScoped<RoomAllocationService>();
-
-        // Register menus
-        services.AddScoped<RoomMenu>();
-        services.AddScoped<ResidentMenu>();
-        services.AddScoped<RoomAllocationMenu>();
-
-        using ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-        try
+        static async Task Main(string[] args)
         {
-            using var scope = serviceProvider.CreateScope();
+            using IHost host = CreateHostBuilder(args).Build();
 
-            var dbContext =
-                scope.ServiceProvider.GetRequiredService<HostelDbContext>();
+            try
+            {
+                using var scope = host.Services.CreateScope();
 
-            await dbContext.Database.CanConnectAsync();
+                var dbContext = scope.ServiceProvider
+                    .GetRequiredService<HostelDbContext>();
 
-            Console.WriteLine("Database connected successfully.");
+                bool connected =
+                    await dbContext.Database.CanConnectAsync();
 
-            var roomMenu =
-                scope.ServiceProvider.GetRequiredService<RoomMenu>();
+                if (!connected)
+                {
+                    Console.WriteLine(
+                        "Could not connect to the database.");
+                    return;
+                }
 
-            var residentMenu =
-                scope.ServiceProvider.GetRequiredService<ResidentMenu>();
+                Console.WriteLine("Database connected successfully.");
 
-            var allocationMenu =
-                scope.ServiceProvider.GetRequiredService<RoomAllocationMenu>();
+                var roomMenu = scope.ServiceProvider
+                    .GetRequiredService<RoomMenu>();
 
-            await ShowMainMenuAsync(roomMenu, residentMenu, allocationMenu);
+                var residentMenu = scope.ServiceProvider
+                    .GetRequiredService<ResidentMenu>();
+
+                var allocationMenu = scope.ServiceProvider
+                    .GetRequiredService<RoomAllocationMenu>();
+
+                await ShowMainMenuAsync(
+                    roomMenu, residentMenu, allocationMenu);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
-        catch (Exception ex)
+
+        public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            Console.WriteLine($"Application error: {ex.Message}");
-            Console.WriteLine(
-                "Check your SQL Server Express connection and database configuration.");
-        }
-    }
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddDbContext<HostelDbContext>(options =>
+                        options.UseSqlServer(
+                            DatabaseConfiguration.ConnectionString));
 
-    private static async Task ShowMainMenuAsync(
+                    services.AddScoped<RoomRepository>();
+                    services.AddScoped<ResidentRepository>();
+                    services.AddScoped<RoomAllocationRepository>();
+
+                    services.AddScoped<RoomService>();
+                    services.AddScoped<ResidentService>();
+                    services.AddScoped<RoomAllocationService>();
+
+                    services.AddScoped<RoomMenu>();
+                    services.AddScoped<ResidentMenu>();
+                    services.AddScoped<RoomAllocationMenu>();
+                });
+        }
+        private static async Task ShowMainMenuAsync(
         RoomMenu roomMenu,
         ResidentMenu residentMenu,
         RoomAllocationMenu allocationMenu)
-    {
-        while (true)
         {
-            Console.WriteLine("\n===== HOSTEL ROOM MANAGEMENT =====");
-            Console.WriteLine("1. Room Management");
-            Console.WriteLine("2. Resident Management");
-            Console.WriteLine("3. Room Allocation Management");
-            Console.WriteLine("0. Exit");
-            Console.Write("Enter your choice: ");
-
-            string? choice = Console.ReadLine();
-
-            switch (choice)
+            while (true)
             {
-                case "1":
-                    await roomMenu.ShowAsync();
-                    break;
+                Console.WriteLine("\n===== HOSTEL ROOM MANAGEMENT =====");
+                Console.WriteLine("1. Room Management");
+                Console.WriteLine("2. Resident Management");
+                Console.WriteLine("3. Room Allocation Management");
+                Console.WriteLine("0. Exit");
+                Console.Write("Enter your choice: ");
 
-                case "2":
-                    await residentMenu.ShowAsync();
-                    break;
+                string? choice = Console.ReadLine();
 
-                case "3":
-                    await allocationMenu.ShowAsync();
-                    break;
+                switch (choice)
+                {
+                    case "1":
+                        await roomMenu.ShowAsync();
+                        break;
 
-                case "0":
-                    Console.WriteLine("Exiting application...");
-                    return;
+                    case "2":
+                        await residentMenu.ShowAsync();
+                        break;
 
-                default:
-                    Console.WriteLine("Invalid choice. Try again.");
-                    break;
+                    case "3":
+                        await allocationMenu.ShowAsync();
+                        break;
+
+                    case "0":
+                        Console.WriteLine("Exiting application...");
+                        return;
+
+                    default:
+                        Console.WriteLine("Invalid choice. Try again.");
+                        break;
+                }
             }
         }
     }
