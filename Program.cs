@@ -1,4 +1,5 @@
-﻿using HostelRoomManagement.Data;
+﻿
+using HostelRoomManagement.Data;
 using HostelRoomManagement.Menus;
 using HostelRoomManagement.Repositories;
 using HostelRoomManagement.Services;
@@ -42,8 +43,14 @@ namespace HostelRoomManagement
                 var allocationMenu = scope.ServiceProvider
                     .GetRequiredService<RoomAllocationMenu>();
 
+                var auditLogMenu = scope.ServiceProvider
+                    .GetRequiredService<AuditLogMenu>();
+
                 await ShowMainMenuAsync(
-                    roomMenu, residentMenu, allocationMenu);
+                    roomMenu,
+                    residentMenu,
+                    allocationMenu,
+                    auditLogMenu);
             }
             catch (Exception ex)
             {
@@ -60,23 +67,31 @@ namespace HostelRoomManagement
                         options.UseSqlServer(
                             DatabaseConfiguration.ConnectionString));
 
+                    // Repositories
                     services.AddScoped<RoomRepository>();
                     services.AddScoped<ResidentRepository>();
                     services.AddScoped<RoomAllocationRepository>();
+                    services.AddScoped<AuditLogRepository>();
 
+                    // Services
                     services.AddScoped<RoomService>();
                     services.AddScoped<ResidentService>();
                     services.AddScoped<RoomAllocationService>();
+                    services.AddScoped<AuditLogService>();
 
+                    // Menus
                     services.AddScoped<RoomMenu>();
                     services.AddScoped<ResidentMenu>();
                     services.AddScoped<RoomAllocationMenu>();
+                    services.AddScoped<AuditLogMenu>();
                 });
         }
+
         private static async Task ShowMainMenuAsync(
-        RoomMenu roomMenu,
-        ResidentMenu residentMenu,
-        RoomAllocationMenu allocationMenu)
+            RoomMenu roomMenu,
+            ResidentMenu residentMenu,
+            RoomAllocationMenu allocationMenu,
+            AuditLogMenu auditLogMenu)
         {
             while (true)
             {
@@ -84,6 +99,7 @@ namespace HostelRoomManagement
                 Console.WriteLine("1. Room Management");
                 Console.WriteLine("2. Resident Management");
                 Console.WriteLine("3. Room Allocation Management");
+                Console.WriteLine("4. Audit Log Management");
                 Console.WriteLine("0. Exit");
                 Console.Write("Enter your choice: ");
 
@@ -101,6 +117,10 @@ namespace HostelRoomManagement
 
                     case "3":
                         await allocationMenu.ShowAsync();
+                        break;
+
+                    case "4":
+                        auditLogMenu.ShowMenu();
                         break;
 
                     case "0":
