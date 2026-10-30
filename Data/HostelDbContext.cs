@@ -1,7 +1,7 @@
 ﻿
 using HostelRoomManagement.Models;
 using Microsoft.EntityFrameworkCore;
-
+using HostelRoomManagement.Models;
 namespace HostelRoomManagement.Data;
 
 public class HostelDbContext : DbContext
@@ -11,13 +11,14 @@ public class HostelDbContext : DbContext
         : base(options)
     {
     }
-
+    
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Resident> Residents => Set<Resident>();
     public DbSet<RoomAllocation> RoomAllocations =>
         Set<RoomAllocation>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
