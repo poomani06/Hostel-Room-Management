@@ -9,15 +9,18 @@ public class RoomAllocationService
     private readonly RoomAllocationRepository _allocationRepository;
     private readonly RoomRepository _roomRepository;
     private readonly ResidentRepository _residentRepository;
+    private readonly AuditLogService _auditLogService;
 
     public RoomAllocationService(
         RoomAllocationRepository allocationRepository,
         RoomRepository roomRepository,
-        ResidentRepository residentRepository)
+        ResidentRepository residentRepository,
+        AuditLogService auditLogService)
     {
         _allocationRepository = allocationRepository;
         _roomRepository = roomRepository;
         _residentRepository = residentRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<RoomAllocation>> GetAllAllocationsAsync()
@@ -25,6 +28,7 @@ public class RoomAllocationService
         return await _allocationRepository.GetAllAsync();
     }
 
+    // Allocate room and create audit log
     public async Task AllocateRoomAsync(int roomId, int residentId)
     {
         if (roomId <= 0 || residentId <= 0)
@@ -71,8 +75,15 @@ public class RoomAllocationService
 
         await _roomRepository.UpdateAsync(room);
         await _allocationRepository.AddAsync(allocation);
+
+        _auditLogService.AddLog(
+            "Create",
+            "RoomAllocation",
+            allocation.AllocationId,
+            $"Room {room.RoomNumber} was allocated to resident {resident.FullName}");
     }
 
+    // Remove allocation and create audit log
     public async Task RemoveAllocationAsync(int allocationId)
     {
         if (allocationId <= 0)
@@ -91,6 +102,11 @@ public class RoomAllocationService
 
         var room = await _roomRepository.GetByIdAsync(allocation.RoomId);
 
+        string roomNumber = room?.RoomNumber ?? "Unknown";
+
+        string residentName =
+            allocation.Resident?.FullName ?? "Unknown";
+
         if (room != null && room.OccupiedBeds > 0)
         {
             room.OccupiedBeds--;
@@ -98,5 +114,11 @@ public class RoomAllocationService
         }
 
         await _allocationRepository.DeleteAsync(allocation);
+
+        _auditLogService.AddLog(
+            "Delete",
+            "RoomAllocation",
+            allocationId,
+            $"Allocation removed: Room {roomNumber}, Resident {residentName}");
     }
 }
