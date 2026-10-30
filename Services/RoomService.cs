@@ -1,16 +1,21 @@
 ﻿
 using HostelRoomManagement.Models;
 using HostelRoomManagement.Repositories;
+using HostelRoomManagement.Services;
 
 namespace HostelRoomManagement.Services;
 
 public class RoomService
 {
     private readonly RoomRepository _roomRepository;
+    private readonly AuditLogService _auditLogService;
 
-    public RoomService(RoomRepository roomRepository)
+    public RoomService(
+        RoomRepository roomRepository,
+        AuditLogService auditLogService)
     {
         _roomRepository = roomRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<Room>> GetAllRoomsAsync()
@@ -28,6 +33,7 @@ public class RoomService
         return await _roomRepository.GetByIdAsync(id);
     }
 
+    // Add room and create audit log
     public async Task AddRoomAsync(Room room)
     {
         if (string.IsNullOrWhiteSpace(room.RoomNumber))
@@ -57,8 +63,15 @@ public class RoomService
         }
 
         await _roomRepository.AddAsync(room);
+
+        _auditLogService.AddLog(
+            "Create",
+            "Room",
+            room.RoomId,
+            $"Room {room.RoomNumber} was created");
     }
 
+    // Update room and create audit log
     public async Task UpdateRoomAsync(Room room)
     {
         if (room.RoomId <= 0)
@@ -107,8 +120,15 @@ public class RoomService
         existingRoom.MonthlyFee = room.MonthlyFee;
 
         await _roomRepository.UpdateAsync(existingRoom);
+
+        _auditLogService.AddLog(
+            "Update",
+            "Room",
+            existingRoom.RoomId,
+            $"Room {existingRoom.RoomNumber} was updated");
     }
 
+    // Delete room and create audit log
     public async Task DeleteRoomAsync(int id)
     {
         if (id <= 0)
@@ -123,6 +143,14 @@ public class RoomService
             throw new ArgumentException("Room not found.");
         }
 
+        string roomNumber = room.RoomNumber;
+
         await _roomRepository.DeleteAsync(room);
+
+        _auditLogService.AddLog(
+            "Delete",
+            "Room",
+            id,
+            $"Room {roomNumber} was deleted");
     }
 }
